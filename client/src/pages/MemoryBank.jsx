@@ -1,7 +1,6 @@
 import { BrainCircuit, Search, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
 import Badge from "../components/Badge.jsx";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
@@ -9,6 +8,7 @@ import MemoryCard from "../components/MemoryCard.jsx";
 import Spinner from "../components/Spinner.jsx";
 import { getMemories } from "../services/api.js";
 import { staggerContainer } from "../utils/motion.js";
+import { showErrorToast } from "../utils/toast.js";
 
 export default function MemoryBank() {
   const [memories, setMemories] = useState([]);
@@ -18,7 +18,7 @@ export default function MemoryBank() {
   const load = () => {
     setLoading(true);
     setError("");
-    getMemories().then(setMemories).catch((reason) => { setError(reason.message); toast.error(reason.message); }).finally(() => setLoading(false));
+    getMemories().then(setMemories).catch((reason) => { setError(reason.message); showErrorToast(reason.message); }).finally(() => setLoading(false));
   };
   useEffect(() => { load(); }, []);
   const filtered = useMemo(() => memories.filter((memory) => `${memory.title} ${memory.rootCause} ${memory.resolutionSteps} ${memory.service || ""}`.toLowerCase().includes(search.toLowerCase())), [memories, search]);

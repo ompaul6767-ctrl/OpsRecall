@@ -6,6 +6,7 @@ import Badge from "./Badge.jsx";
 import Button from "./Button.jsx";
 import Card from "./Card.jsx";
 import { staggerContainer } from "../utils/motion.js";
+import { showErrorToast } from "../utils/toast.js";
 
 function formatLine(line) {
   if (!line.trim()) return <div className="h-1" />;
@@ -26,7 +27,7 @@ export default function ResolutionPanel({ result, title = "AI suggested resoluti
       toast.success("Resolution copied");
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
-      toast.error("Clipboard access is unavailable in this browser.");
+      showErrorToast("Clipboard access is unavailable in this browser.");
     }
   };
   return (

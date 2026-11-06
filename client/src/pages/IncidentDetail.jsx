@@ -2,7 +2,6 @@ import { ArrowLeft, FileText, Layers3 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import toast from "react-hot-toast";
 import Badge from "../components/Badge.jsx";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
@@ -10,6 +9,7 @@ import MemoryCard from "../components/MemoryCard.jsx";
 import ResolutionPanel from "../components/ResolutionPanel.jsx";
 import Spinner from "../components/Spinner.jsx";
 import { getIncident } from "../services/api.js";
+import { showErrorToast } from "../utils/toast.js";
 
 export default function IncidentDetail() {
   const { id } = useParams();
@@ -19,7 +19,7 @@ export default function IncidentDetail() {
   const load = () => {
     setLoading(true);
     setError("");
-    getIncident(id).then(setIncident).catch((reason) => { setError(reason.message); toast.error(reason.message); }).finally(() => setLoading(false));
+    getIncident(id).then(setIncident).catch((reason) => { setError(reason.message); showErrorToast(reason.message); }).finally(() => setLoading(false));
   };
   useEffect(() => { load(); }, [id]);
   if (loading) return <Spinner label="Loading incident detail…" />;

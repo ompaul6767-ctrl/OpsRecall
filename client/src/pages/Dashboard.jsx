@@ -13,6 +13,7 @@ import StatCard from "../components/StatCard.jsx";
 import Toggle from "../components/Toggle.jsx";
 import { analyzeIncident, getStats, resolveIncident } from "../services/api.js";
 import { staggerContainer } from "../utils/motion.js";
+import { showErrorToast } from "../utils/toast.js";
 
 const samples = [
   { label: "502 Bad Gateway", value: "[2025-11-06T09:14:22Z] nginx: [error] upstream timed out (110: Connection timed out) while reading response header from upstream, client: 10.2.4.18, server: checkout.opsrecall.internal, request: \"POST /api/checkout HTTP/1.1\", upstream: \"http://checkout-api:8080/api/checkout\" — returned 502 Bad Gateway in ap-south-1." },
@@ -73,7 +74,7 @@ export default function Dashboard() {
   const [analysisStep, setAnalysisStep] = useState(0);
   const textAreaRef = useRef(null);
 
-  const refreshStats = useCallback(() => getStats().then(setStats).catch((error) => toast.error(error.message)), []);
+  const refreshStats = useCallback(() => getStats().then(setStats).catch((error) => showErrorToast(error.message)), []);
   useEffect(() => { refreshStats(); }, [refreshStats]);
   useEffect(() => {
     if (!busy && !compareBusy) {
@@ -86,7 +87,7 @@ export default function Dashboard() {
 
   const analyze = useCallback(async (memoryOverride = useMemory) => {
     if (!log.trim()) {
-      toast.error("Paste an error log or load a sample before analyzing.");
+      showErrorToast("Paste an error log or load a sample before analyzing.");
       textAreaRef.current?.focus();
       return null;
     }
@@ -103,7 +104,7 @@ export default function Dashboard() {
       return data;
     } catch (error) {
       setApiError(error.message);
-      toast.error(error.message);
+      showErrorToast(error.message);
       return null;
     } finally {
       setBusy(false);
@@ -123,7 +124,7 @@ export default function Dashboard() {
 
   const runCompare = async () => {
     if (!log.trim()) {
-      toast.error("Paste an error log before starting compare mode.");
+      showErrorToast("Paste an error log before starting compare mode.");
       return;
     }
     setCompareBusy(true);
@@ -138,7 +139,7 @@ export default function Dashboard() {
       refreshStats();
     } catch (error) {
       setApiError(error.message);
-      toast.error(error.message);
+      showErrorToast(error.message);
     } finally {
       setCompareBusy(false);
     }
@@ -148,7 +149,7 @@ export default function Dashboard() {
     event.preventDefault();
     if (!result?.incidentId) return;
     if (!feedback.trim()) {
-      toast.error("Describe the steps you took to fix the incident.");
+      showErrorToast("Describe the steps you took to fix the incident.");
       return;
     }
     setResolving(true);
@@ -160,7 +161,7 @@ export default function Dashboard() {
       toast.success("Learned! Memory retained in Hindsight", { icon: <BrainCircuit size={17} className="text-emerald-600" /> });
       refreshStats();
     } catch (error) {
-      toast.error(error.message);
+      showErrorToast(error.message);
     } finally {
       setResolving(false);
     }

@@ -2,13 +2,13 @@ import { Activity, ArrowUpRight, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import toast from "react-hot-toast";
 import Badge from "../components/Badge.jsx";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Spinner from "../components/Spinner.jsx";
 import { getIncidents } from "../services/api.js";
 import { staggerContainer } from "../utils/motion.js";
+import { showErrorToast } from "../utils/toast.js";
 
 export default function IncidentHistory() {
   const [incidents, setIncidents] = useState([]);
@@ -19,7 +19,7 @@ export default function IncidentHistory() {
   const load = () => {
     setLoading(true);
     setError("");
-    getIncidents().then(setIncidents).catch((reason) => { setError(reason.message); toast.error(reason.message); }).finally(() => setLoading(false));
+    getIncidents().then(setIncidents).catch((reason) => { setError(reason.message); showErrorToast(reason.message); }).finally(() => setLoading(false));
   };
   useEffect(() => { load(); }, []);
   const filtered = useMemo(() => incidents.filter((incident) => (status === "All" || incident.status === status) && `${incident.id} ${incident.title}`.toLowerCase().includes(search.toLowerCase())), [incidents, search, status]);
