@@ -15,10 +15,10 @@ export default function StatCard({ label, value, note, icon: Icon, color = "text
     <motion.div variants={fadeUp} whileHover={{ y: -3, transition: { duration: 0.2 } }}>
       <Card className="group h-full p-4 sm:p-5">
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0"><p className="text-[11px] font-medium text-slate-500">{label}</p><p className="mt-3 text-[26px] font-semibold leading-none tracking-[-.045em] text-slate-900 sm:text-[30px]">{hasNumber ? <CountUp end={parsedValue} duration={1.35} separator="," suffix={suffix} /> : value ?? "—"}</p><p className="mt-2 text-[10px] text-slate-500">{note}</p></div>
+          <div className="min-w-0"><p className="text-xs font-medium text-slate-600">{label}</p><p className="mt-3 text-3xl font-semibold leading-none tracking-[-.045em] text-slate-900 sm:text-[32px]">{hasNumber ? <CountUp end={parsedValue} duration={1.35} separator="," suffix={suffix} /> : value ?? "—"}</p><p className="mt-2 text-xs text-slate-500">{note}</p></div>
           {Icon && <motion.span whileHover={{ scale: 1.08, rotate: 4 }} className={`rounded-xl border border-blue-100 bg-blue-50 p-2.5 ${color}`}><Icon size={16} /></motion.span>}
         </div>
-        <div className="mt-3 flex items-end justify-between"><span className={`text-[8px] font-semibold uppercase tracking-[.17em] ${color}`}>Live insight</span><Sparkline color={color} /></div>
+        <div className="mt-3 flex items-end justify-between"><span className={`text-[10px] font-semibold uppercase tracking-[.14em] ${color}`}>Live insight</span><Sparkline color={color} /></div>
       </Card>
     </motion.div>
   );

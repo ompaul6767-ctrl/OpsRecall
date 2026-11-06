@@ -13,7 +13,7 @@ export default function Badge({ children, tone = "slate", className = "" }) {
     <motion.span
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={clsx("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide ring-1 ring-inset", tones[tone] || tones.slate, className)}
+      className={clsx("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-semibold tracking-wide ring-1 ring-inset", tones[tone] || tones.slate, className)}
     >
       {children}
     </motion.span>

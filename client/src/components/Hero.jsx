@@ -16,7 +16,7 @@ export default function Hero() {
   return (
     <section className="relative isolate overflow-hidden rounded-[28px] border border-blue-100/90 bg-gradient-to-br from-white via-white to-blue-50/70 px-5 py-7 shadow-[0_18px_48px_rgba(37,99,235,0.09)] sm:px-8 sm:py-9 lg:px-10 lg:py-10">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_75%_5%,rgba(59,130,246,0.13),transparent_44%)]" />
-      <div className="absolute -right-4 -top-5 -z-10 h-48 w-48 opacity-70 sm:right-6 sm:top-1 sm:h-64 sm:w-64">
+      <div className="absolute -right-4 -top-5 -z-10 hidden h-48 w-48 opacity-70 sm:right-6 sm:top-1 sm:block sm:h-64 sm:w-64">
         <motion.div animate={{ rotate: 360 }} transition={{ duration: 90, repeat: Infinity, ease: "linear" }} className="absolute inset-2 rounded-full border border-dashed border-blue-300/35" />
         <motion.div animate={{ rotate: -360 }} transition={{ duration: 64, repeat: Infinity, ease: "linear" }} className="absolute inset-9 rounded-full border border-sky-300/40" />
         <svg viewBox="0 0 300 190" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
@@ -29,9 +29,9 @@ export default function Hero() {
       </div>
       <div className="relative max-w-[780px]">
         <Badge tone="indigo"><span className="h-1 w-1 rounded-full bg-blue-500" />OPS INTELLIGENCE · HINDSIGHT MEMORY</Badge>
-        <motion.h1 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6, ease: [.22, 1, .36, 1] }} className="mt-5 max-w-[760px] text-[clamp(2rem,4.2vw,3.8rem)] font-semibold leading-[1.06] tracking-[-.065em] text-slate-900">Never debug the <span className="gradient-text">same outage twice.</span></motion.h1>
-        <p className="mt-4 max-w-[580px] text-[13px] leading-6 text-slate-600 sm:text-sm">Your team's operational memory, ready when production isn't. Turn incidents into learning and find the fix that worked before.</p>
-        <a href="#incident-workspace" className="mt-6 inline-flex items-center gap-2 text-[11px] font-semibold text-blue-700 transition hover:text-blue-900">Start an investigation <ArrowDownRight size={14} /></a>
+        <motion.h1 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6, ease: [.22, 1, .36, 1] }} className="mt-5 max-w-[760px] text-[clamp(2.5rem,5vw,3.75rem)] font-semibold leading-[1.04] tracking-[-.065em] text-slate-900">Never debug the <span className="gradient-text">same outage twice.</span></motion.h1>
+        <p className="mt-5 max-w-[580px] text-sm leading-7 text-slate-600 sm:text-base">Your team's operational memory, ready when production isn't. Turn incidents into learning and find the fix that worked before.</p>
+        <a href="#incident-workspace" className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-blue-700 transition hover:text-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60">Start an investigation <ArrowDownRight size={16} /></a>
       </div>
       <div className="absolute bottom-4 right-5 hidden items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-3 py-1.5 font-mono text-[9px] text-slate-500 backdrop-blur sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_9px_rgba(16,185,129,.35)]" />LEARNING SYSTEM ACTIVE</div>
     </section>

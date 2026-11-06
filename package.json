@@ -1,0 +1,25 @@
+{
+  "name": "opsrecall",
+  "version": "1.0.0",
+  "description": "<div align=\"center\">",
+  "main": "index.js",
+  "scripts": {
+  "dev": "concurrently -n server,client -c blue,green \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+  "install:all": "npm install && npm install --prefix server && npm install --prefix client"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ompaul6767-ctrl/OpsRecall.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ompaul6767-ctrl/OpsRecall/issues"
+  },
+  "homepage": "https://github.com/ompaul6767-ctrl/OpsRecall#readme",
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  }
+}
