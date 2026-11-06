@@ -6,13 +6,15 @@ if (!process.env.GROQ_API_KEY) {
 }
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const MODEL = process.env.GROQ_MODEL || 'qwen/qwen3-32b';
 
-// Keep each memory short so the prompt stays fast and within limits.
+// Models are tried in order. Set GROQ_MODELS="primary,backup" in .env to override.
+const MODELS = (process.env.GROQ_MODELS || process.env.GROQ_MODEL || 'openai/gpt-oss-120b,openai/gpt-oss-20b')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 const MAX_MEMORY_CHARS = 1500;
 
-// The system prompt controls behavior. It forces the model to ground
-// infrastructure-specific claims in Hindsight memories and not invent details.
 const SYSTEM = `You are OpsRecall, an incident-response assistant for ONE company's infrastructure.
 You are given a new error log and MEMORIES of past incidents from this company.
 
@@ -33,28 +35,30 @@ export async function generateResolution(errorLog, memories = []) {
     ? memories.map((m, i) => `[Memory ${i + 1}]: ${String(m).slice(0, MAX_MEMORY_CHARS)}`).join('\n\n')
     : 'NONE';
 
-  try {
-    const res = await groq.chat.completions.create({
-      model: MODEL,
-      temperature: 0.2, // low temperature = consistent, factual answers
-      messages: [
-        { role: 'system', content: SYSTEM },
-        {
-          role: 'user',
-          content: `NEW ERROR LOG:\n${errorLog}\n\nINFRASTRUCTURE MEMORIES:\n${memoryBlock}`,
-        },
-      ],
-    });
+  const messages = [
+    { role: 'system', content: SYSTEM },
+    { role: 'user', content: `NEW ERROR LOG:\n${errorLog}\n\nINFRASTRUCTURE MEMORIES:\n${memoryBlock}` },
+  ];
 
-    // Some open models emit reasoning inside <think> tags; strip it for a clean UI.
-    const text = (res.choices?.[0]?.message?.content ?? '')
-      .replace(/<think>[\s\S]*?<\/think>/g, '')
-      .trim();
+  let lastError;
+  for (const model of MODELS) {
+    try {
+      const res = await groq.chat.completions.create({ model, temperature: 0.2, messages });
 
-    if (!text) throw new Error('Model returned an empty response.');
-    return text;
-  } catch (error) {
-    console.error('Groq LLM Error:', error?.message || error);
-    throw new Error('Failed to generate resolution from LLM.');
+      const text = (res.choices?.[0]?.message?.content ?? '')
+        .replace(/<think>[\s\S]*?<\/think>/g, '')
+        .trim();
+      if (!text) throw new Error('Empty response from model.');
+
+      console.log(`Resolution generated with ${model}`);
+      return text;
+    } catch (err) {
+      lastError = err;
+      console.warn(`Model ${model} failed (${err?.status ?? ''} ${err?.message}). Trying next...`);
+      if (err?.status === 401) break; // bad API key: other models will fail too
+    }
   }
+
+  console.error('All Groq models failed:', lastError?.message || lastError);
+  throw new Error('Failed to generate resolution from LLM.');
 }
