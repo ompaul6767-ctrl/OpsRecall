@@ -131,7 +131,7 @@ OpsRecall/
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22.12+ (required by the installed Band SDK)
 - A [MongoDB Atlas](https://www.mongodb.com/atlas) cluster (or local MongoDB)
 - A [Hindsight Cloud](https://ui.hindsight.vectorize.io) account and API key
 - A [Groq](https://groq.com) API key
@@ -156,12 +156,22 @@ HINDSIGHT_API_KEY=your_hindsight_key
 GROQ_API_KEY=your_groq_key
 PORT=5000
 
+# Optional Band room notifications; leave both unset to disable
+BAND_AGENT_API_KEY=
+BAND_ROOM_ID=
+
 # Optional
 # Models are tried in order; if the first fails, the next is used
 # GROQ_MODELS=openai/gpt-oss-120b,openai/gpt-oss-20b
 # HINDSIGHT_BASE_URL=https://api.hindsight.vectorize.io
 # HINDSIGHT_BANK_ID=opsrecall-infra
 ```
+
+When both Band variables are set, OpsRecall posts an analysis summary and a
+resolution status event to `BAND_ROOM_ID`. Notifications contain only the
+incident ID, status, Hindsight recall count, and retention status; raw logs,
+generated analysis, root-cause text, and engineer feedback are not sent. Band
+delivery is best-effort and does not affect the incident API response.
 
 ### 3. Seed the memory (run once)
 

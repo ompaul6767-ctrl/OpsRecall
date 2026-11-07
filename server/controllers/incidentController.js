@@ -1,6 +1,10 @@
 import mongoose from 'mongoose';
 import { hs, BANK } from '../services/memory.js';
 import { generateResolution } from '../services/llm.js';
+import {
+  notifyIncidentAnalyzed,
+  notifyIncidentResolved,
+} from '../services/band.js';
 import Incident from '../models/Incident.js';
 
 const MAX_LOG_CHARS = 4000;
@@ -330,6 +334,17 @@ export async function analyze(req, res) {
       });
     }
 
+    if (incident) {
+      void notifyIncidentAnalyzed({
+        incidentId: String(incident._id),
+        status: incident.status,
+        memoryEnabled,
+        memoriesRecalledCount: memoriesRecalled.length,
+      }).catch(() => {
+        console.error('Band analysis notification failed unexpectedly.');
+      });
+    }
+
     return res.json({
       success: true,
 
@@ -470,6 +485,13 @@ export async function resolve(req, res) {
     existing.memoryRetained = retained;
 
     await existing.save();
+
+    void notifyIncidentResolved({
+      incidentId: String(existing._id),
+      memoryRetained: retained,
+    }).catch(() => {
+      console.error('Band resolution notification failed unexpectedly.');
+    });
 
     return res.json({
       success: true,
