@@ -9,8 +9,9 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
 ![Memory](https://img.shields.io/badge/Memory-Hindsight-6C47FF)
 ![LLM](https://img.shields.io/badge/LLM-Groq-F55036)
+![Collaboration](https://img.shields.io/badge/Notifications-Band_AI-00C389)
 
-[The Problem](#-the-problem) · [Before vs After](#-before-vs-after) · [How It Works](#-how-it-works) · [How Hindsight Is Used](#-how-hindsight-memory-is-used) · [Setup](#-getting-started) · [API](#-api-reference)
+[The Problem](#-the-problem) · [Before vs After](#-before-vs-after) · [Screenshots](#-screenshots) · [How It Works](#-how-it-works) · [How Hindsight Is Used](#-how-hindsight-memory-is-used) · [Band Integration](#-band-ai-integration) · [Setup](#-getting-started) · [API](#-api-reference)
 
 </div>
 
@@ -30,6 +31,7 @@ A generic LLM doesn't help much here. Paste in a `502 Bad Gateway` and it will s
 2. OpsRecall **recalls** semantically similar past incidents (root causes and fixes) from Hindsight.
 3. A fast LLM (Groq) combines the new error with those memories to produce a fix specific to your infrastructure.
 4. After the engineer resolves the issue, the steps they actually took are **retained** in memory, so the next outage is faster.
+5. **[Band AI](https://www.band.ai)** posts a short status update to the team's room at each stage, so the people on call see what the agent did without opening the dashboard.
 
 The agent gets better with every incident your team closes.
 
@@ -45,7 +47,34 @@ The agent gets better with every incident your team closes.
 
 **The learning loop:** analyze a brand-new error (generic answer) → resolve it with real steps → analyze a similar error again → the fix you just entered is now recalled.
 
+## 📸 Screenshots
+
+### Compare Mode
+
+![Compare Mode: memory off next to memory on](docs/images/compare-mode.jpg)
+
+The same log analyzed twice: a generic baseline on the left, and the memory-informed response with its recalled memories on the right. Each panel shows its own response time.
+
+### Analysis view
+
+![Analysis view with the memory switch and suggested resolution](docs/images/analyze-view.jpg)
+
+An incident signal, the memory switch, and the suggested resolution with the number of memories recalled.
+
 ## ⚙️ How It Works
+
+![OpsRecall architecture: React frontend, Express API, MongoDB Atlas, Hindsight memory, Groq LLM and a Band room](docs/images/architecture.png)
+
+The numbered steps in the diagram, in order:
+
+| Step | What happens |
+|---|---|
+| 1 to 7 | **Analyze:** the engineer submits a log, the API recalls similar incidents from Hindsight, the LLM drafts a fix from the log and those memories, the incident is saved, and the fix is returned |
+| 8 | A summary is posted to the Band room (background, best-effort) |
+| 9 to 11 | **Resolve:** the engineer submits the steps they took, the incident is marked Resolved, and the fix is retained in Hindsight |
+| 12 | A resolution status is posted to the Band room (background, best-effort) |
+
+The same flow as a sequence diagram:
 
 ```mermaid
 sequenceDiagram
@@ -55,6 +84,7 @@ sequenceDiagram
     participant HS as Hindsight Memory
     participant LLM as Groq LLM
     participant DB as MongoDB Atlas
+    participant BAND as Band room
 
     SRE->>API: POST /api/incident/analyze (error log)
     API->>HS: recall(error log)
@@ -62,11 +92,13 @@ sequenceDiagram
     API->>LLM: error + recalled memories
     LLM-->>API: root cause + fix steps
     API->>DB: save incident (Investigating)
+    API--)BAND: analysis summary (best-effort)
     API-->>SRE: resolution + memories used
 
     SRE->>API: POST /api/incident/resolve (steps taken)
     API->>DB: status = Resolved
     API->>HS: retain(error + human fix)
+    API--)BAND: resolution status (best-effort)
     API-->>SRE: success
 ```
 
@@ -97,6 +129,65 @@ await hs.retain(BANK, `Incident: ${rawErrorLog}\nResolution by Engineer: ${feedb
 
 **Seed data:** `server/scripts/seed.js` preloads 8 realistic past incidents (OOM kills, Atlas IP allow-lists, Redis client exhaustion, Kubernetes config drift, S3 CORS, expired TLS certificates, Postgres connection slots, Elasticsearch disk watermarks), so the agent has institutional memory from the first run.
 
+## 🔗 Band AI Integration
+
+OpsRecall reports to a **[Band](https://www.band.ai)** room. When an incident is analyzed or resolved, the backend posts a short status message from the OpsRecall agent into a shared room, so the whole on-call team sees progress in the place they already collaborate.
+
+![OpsRecall Agent posting an analysis summary in a Band room](docs/images/band-room.jpg)
+
+### What gets posted
+
+| Event | Trigger | Message |
+|---|---|---|
+| Analysis completed | `POST /api/incident/analyze` saved an incident | `OpsRecall analysis completed.` + incident ID, status, and how many past incidents Hindsight recalled (or that memory was disabled) |
+| Incident resolved | `POST /api/incident/resolve` succeeded | `OpsRecall incident resolved.` + incident ID and whether Hindsight retention was confirmed |
+
+Example message:
+
+```text
+OpsRecall analysis completed.
+Incident ID: 6aef24d9e15615060affc772
+Status: Investigating
+1 past incident(s) recalled from Hindsight
+Review the incident in OpsRecall for analysis details.
+```
+
+### Privacy by design
+
+- Messages carry **only** the incident ID, status, recall count and retention status.
+- Raw error logs, the generated resolution, root-cause text and engineer feedback are **never** sent. The tests assert this with secret-looking strings.
+- The incident ID is validated as a 24-character hex string before anything is posted.
+- If the Band API rejects a request (HTTP 422), the logged error is reduced to an allow-listed set of field names and a classification such as `mention_required`. Raw response bodies are never logged.
+
+### Behavior
+
+- **Opt-in.** With `BAND_AGENT_API_KEY` or `BAND_ROOM_ID` unset, notifications are skipped and a single warning is logged.
+- **Best-effort.** The call is fire-and-forget: a Band outage or error never delays or fails an incident response.
+- **Compare mode is silent.** Comparison runs that are not saved to history (`saveIncident: false`) do not post to the room.
+- **Mentions.** Each message mentions a team member so the room notifies them. The mention is currently set in `server/services/band.js`.
+
+### Enable it
+
+1. Register the OpsRecall agent in Band and copy its API key (see the [Band docs](https://www.band.ai)).
+2. Add the agent to the room that should receive updates and copy the room ID.
+3. Set both values in `server/.env`:
+
+```env
+BAND_AGENT_API_KEY=your_band_agent_key
+BAND_ROOM_ID=your_room_id
+```
+
+4. Restart the server, then analyze an incident. A message should appear in the room.
+
+### Tests
+
+```bash
+cd server
+npm test
+```
+
+The test suite in `server/services/band.test.js` uses a stubbed Band client, so it makes no live requests. It covers the safe analysis message, the closure message, the sanitized 422 handling, the skip-when-unconfigured path and the exact request shape the Band SDK sends.
+
 ## 🧰 Tech Stack
 
 | Layer | Technology |
@@ -106,6 +197,7 @@ await hs.retain(BANK, `Incident: ${rawErrorLog}\nResolution by Engineer: ${feedb
 | Database | MongoDB Atlas (Mongoose) for incident state |
 | **Agent memory** | **Hindsight Cloud** (`@vectorize-io/hindsight-client`) |
 | LLM | Groq (`openai/gpt-oss-120b` by default, with automatic fallback to `openai/gpt-oss-20b`) |
+| Team notifications | Band AI (`@band-ai/sdk`, `@band-ai/rest-client`) |
 | Dev tooling | Band AI desktop |
 
 ## 📁 Project Structure
@@ -113,6 +205,7 @@ await hs.retain(BANK, `Incident: ${rawErrorLog}\nResolution by Engineer: ${feedb
 ```
 OpsRecall/
 ├── client/                      # React frontend
+├── docs/images/                 # README screenshots and architecture diagram
 └── server/
     ├── index.js                 # Express app + routes
     ├── models/Incident.js       # Mongoose schema
@@ -120,9 +213,13 @@ OpsRecall/
     │   └── incidentController.js  # analyze (recall) + resolve (retain)
     ├── services/
     │   ├── memory.js            # Hindsight client + memory bank
-    │   └── llm.js               # Groq client + system prompt
+    │   ├── llm.js               # Groq client + system prompt
+    │   ├── band.js              # Band room notifications (best-effort)
+    │   └── band.test.js         # Band integration tests (stubbed client)
     └── scripts/
         ├── seed.js              # preload past incidents
+        ├── create-bank.js       # create the Hindsight memory bank
+        ├── test-memory.js       # quick recall check
         ├── test-api.js          # quick /analyze check
         └── test-resolve.js      # quick /resolve check
 ```
@@ -156,7 +253,7 @@ HINDSIGHT_API_KEY=your_hindsight_key
 GROQ_API_KEY=your_groq_key
 PORT=5000
 
-# Optional Band room notifications; leave both unset to disable
+# Optional Band room notifications (see "Band AI Integration"); leave both unset to disable
 BAND_AGENT_API_KEY=
 BAND_ROOM_ID=
 
@@ -167,11 +264,7 @@ BAND_ROOM_ID=
 # HINDSIGHT_BANK_ID=opsrecall-infra
 ```
 
-When both Band variables are set, OpsRecall posts an analysis summary and a
-resolution status event to `BAND_ROOM_ID`. Notifications contain only the
-incident ID, status, Hindsight recall count, and retention status; raw logs,
-generated analysis, root-cause text, and engineer feedback are not sent. Band
-delivery is best-effort and does not affect the incident API response.
+When both Band variables are set, OpsRecall posts analysis and resolution updates to that room. Details, privacy rules and tests are in [Band AI Integration](#-band-ai-integration).
 
 ### 3. Seed the memory (run once)
 
@@ -199,6 +292,8 @@ cd server
 node scripts/test-api.js        # analyze with memory ON
 # copy the incidentId from the output into scripts/test-resolve.js, then:
 node scripts/test-resolve.js
+
+npm test                        # Band integration tests (no live requests)
 ```
 
 ## 📡 API Reference
@@ -209,15 +304,19 @@ Base URL: `http://localhost:5000`
 
 ```jsonc
 // request
-{ "errorLog": "payments-api returned 502 Bad Gateway...", "useMemory": true }
+{ "errorLog": "payments-api returned 502 Bad Gateway...", "useMemory": true, "saveIncident": true }
 
 // 200 response
 {
-  "incidentId": "665f...",
+  "success": true,
+  "incidentId": "665f...",          // null when saveIncident is false
+  "savedToHistory": true,
+  "status": "Investigating",        // "Comparison only" when not saved
   "resolution": "1) Likely Root Cause ...",
   "memories": ["Incident: payments-api returned 502 ..."],
   "memoryEnabled": true,
-  "memoryError": false
+  "memoryError": false,
+  "latencyMs": 4892
 }
 ```
 
@@ -227,7 +326,7 @@ Base URL: `http://localhost:5000`
 | 502 | LLM failed to generate a resolution |
 | 500 | Unexpected server error |
 
-If Hindsight is unreachable, the request still succeeds without memory and returns `memoryError: true`.
+If Hindsight is unreachable, the request still succeeds without memory and returns `memoryError: true`. When an incident is saved, a Band notification is sent in the background.
 
 ### `POST /api/incident/resolve`
 
@@ -255,6 +354,8 @@ If Hindsight is unreachable, the request still succeeds without memory and retur
 - **Low temperature (0.2)** for consistent, factual output.
 - **LLM fallback:** if the primary Groq model fails (rate limit, retired model), the next model in `GROQ_MODELS` is tried automatically.
 - **Synchronous retain** (`async: false`) so a fix is recallable immediately after it is saved.
+- **Band notifications are metadata-only and best-effort:** incident ID, status and counts, never log contents, and never on the request's critical path.
+- **Injectable notifier:** `createBandNotifier` takes its environment, client factory and logger as parameters, so the integration is tested without network access.
 
 ## ⚠️ Known Limitations
 
@@ -264,12 +365,17 @@ If Hindsight is unreachable, the request still succeeds without memory and retur
 - Fallback models may phrase answers differently or be less accurate than the primary model.
 - Seed data is synthetic. Replace it with your own post-mortems for real use.
 - The `useMemory` switch is a demo and testing aid, not a production feature.
+- Band delivery has no retry or queue. A failed notification is logged and dropped.
+- Notifications go to one room, and the mentioned team member is set in `server/services/band.js` rather than in configuration.
+- Band messages are one-way status updates. You cannot trigger an analysis from the room yet.
 
 ## 🗺️ Roadmap
 
 - Authentication and per-team memory banks
 - Importing existing post-mortems and runbooks in bulk
 - Showing recall relevance in the UI
+- Configurable Band mentions and per-severity rooms
+- Triggering analyses and resolutions from Band chat
 - Slack / PagerDuty integration to ingest alerts automatically
 
 ## 👥 Team
@@ -286,6 +392,7 @@ If Hindsight is unreachable, the request still succeeds without memory and retur
 - Hindsight on GitHub: https://github.com/vectorize-io/hindsight
 - Hindsight documentation: https://hindsight.vectorize.io/
 - What is agent memory: https://vectorize.io/what-is-agent-memory
+- Band AI: https://www.band.ai
 - Live demo: _add URL_
 - Demo video: _add YouTube URL_
 
