@@ -393,8 +393,8 @@ If Hindsight is unreachable, the request still succeeds without memory and retur
 - Hindsight documentation: https://hindsight.vectorize.io/
 - What is agent memory: https://vectorize.io/what-is-agent-memory
 - Band AI: https://www.band.ai
-- Live demo: _add URL_
-- Demo video: _add YouTube URL_
+- Live demo:https://client-ten-eta-26.vercel.app/
+- Demo video: https://youtu.be/DlG6P-4U0gE?si=liwtUMnYvtL16BE-
 
 ---
 
