@@ -132,9 +132,9 @@ export default function Dashboard() {
     setApiError("");
     try {
       const [withoutMemory, withMemory] = await Promise.all([
-        analyzeIncident(log.trim(), false),
-        analyzeIncident(log.trim(), true),
-      ]);
+      analyzeIncident(log.trim(), false, false),
+      analyzeIncident(log.trim(), true, false),
+    ]);
       setCompareResults({ withoutMemory, withMemory });
       refreshStats();
     } catch (error) {
@@ -246,9 +246,73 @@ export default function Dashboard() {
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 p-4 sm:p-5"><div><div className="flex items-center gap-2"><GitCompareArrows size={15} className="text-blue-600" /><h2 className="text-[12px] font-semibold text-slate-900">The memory advantage</h2></div><p className="mt-1 text-[10px] text-slate-600">Same signal. Two paths. See what your team's experience changes.</p></div><Button onClick={runCompare} loading={compareBusy}><GitCompareArrows size={14} />{compareBusy ? analysisSteps[analysisStep] : "Run comparison"}</Button></div>
             {compareBusy && <div className="grid gap-3 p-4 md:grid-cols-2"><LoadingPanel step={analysisStep} /><LoadingPanel step={analysisStep} /></div>}
             {compareResults && !compareBusy && <motion.div initial={{ opacity: 0, scale: .99 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .35 }} className="relative grid gap-3 p-4 md:grid-cols-2 sm:p-5">
-              <div className="pointer-events-none absolute bottom-8 left-1/2 top-8 hidden w-px bg-gradient-to-b from-transparent via-slate-200 to-transparent md:block" />
-              <motion.div initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .04, duration: .45, ease: [.22, 1, .36, 1] }} className="space-y-3 rounded-2xl border border-rose-200/80 bg-gradient-to-br from-rose-50/75 via-white to-slate-50 p-4 shadow-surface-md"><div className="flex flex-wrap items-center justify-between gap-2"><Badge tone="red"><span className="h-1.5 w-1.5 rounded-full bg-rose-500" />WITHOUT MEMORY</Badge><span className="text-xs text-slate-500">Generic baseline</span></div><ResolutionPanel result={compareResults.withoutMemory} title="Context-free response" tone="red" /><p className="px-1 text-xs text-slate-500">No incident history · generic triage</p></motion.div>
-              <motion.div initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .14, duration: .5, ease: [.22, 1, .36, 1] }} className="space-y-3 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/90 via-white to-emerald-50/60 p-4 shadow-[0_14px_44px_rgba(37,99,235,.13)]"><div className="flex flex-wrap items-center justify-between gap-2"><Badge tone="green"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />WITH HINDSIGHT MEMORY</Badge><span className="text-xs text-emerald-700">{compareResults.withMemory.memoriesRecalled.length} relevant memories</span></div><ResolutionPanel result={compareResults.withMemory} title="Memory-informed response" tone="green" />{compareResults.withMemory.memoriesRecalled.length > 0 ? <div className="space-y-2">{compareResults.withMemory.memoriesRecalled.map((memory) => <div key={memory.id} className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-xs"><span className="truncate text-slate-700">{memory.title}</span><span className="shrink-0 font-mono text-emerald-700">{Math.round(memory.relevanceScore * 100)}%</span></div>)}</div> : <p className="px-1 text-xs text-slate-500">A new incident — resolve it to create the first relevant memory.</p>}</motion.div>
+              <div className="pointer-events-none absolute bottom-8 left-1/2 top-8 hidden w-px bg-gradient-to-b from-transparent via-slate-200 to-transparent md:block" />              <motion.div
+                initial={{ opacity: 0, x: -18 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: .04, duration: .45, ease: [.22, 1, .36, 1] }}
+                className="space-y-3 rounded-2xl border border-rose-200/80 bg-gradient-to-br from-rose-50/75 via-white to-slate-50 p-4 shadow-surface-md"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Badge tone="red">
+                    <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                    WITHOUT MEMORY
+                  </Badge>
+                  <span className="text-xs text-slate-500">Generic baseline</span>
+                </div>
+                <ResolutionPanel
+                  result={compareResults.withoutMemory}
+                  title="Context-free response"
+                  tone="red"
+                />
+                <p className="px-1 text-xs text-slate-500">
+                  No incident history · generic triage
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 18 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: .14, duration: .5, ease: [.22, 1, .36, 1] }}
+                className="space-y-3 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/90 via-white to-emerald-50/60 p-4 shadow-[0_14px_44px_rgba(37,99,235,.13)]"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Badge tone="green">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    WITH HINDSIGHT MEMORY
+                  </Badge>
+                  <span className="text-xs text-emerald-700">
+                    {compareResults.withMemory.memoriesRecalled.length} relevant memories
+                  </span>
+                </div>
+
+                <ResolutionPanel
+                  result={compareResults.withMemory}
+                  title="Memory-informed response"
+                  tone="green"
+                />
+
+                {compareResults.withMemory.memoriesRecalled.length > 0 ? (
+                  <div className="space-y-2">
+                    {compareResults.withMemory.memoriesRecalled.map((memory) => (
+                      <div
+                        key={memory.id}
+                        className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-xs"
+                      >
+                        <span className="truncate text-slate-700">{memory.title}</span>
+                        <span className="shrink-0 font-mono text-emerald-700">
+                          {typeof memory.relevanceScore === "number"
+                            ? `${Math.round(memory.relevanceScore * 100)}%`
+                            : "Relevant memory"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="px-1 text-xs text-slate-500">
+                    A new incident — resolve it to create the first relevant memory.
+                  </p>
+                )}
+              </motion.div>
             </motion.div>}
           </Card>
         </motion.section>}
