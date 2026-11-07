@@ -1,10 +1,9 @@
-
 import axios from "axios";
 
 const api = axios.create({
   baseURL:
     import.meta.env.VITE_API_BASE_URL ||
-    "http://localhost:5000/api",
+    "http://localhost:5000", // Removed the /api from here
 
   headers: {
     "Content-Type": "application/json",
@@ -34,7 +33,7 @@ export const analyzeIncident = (
   useMemory = true,
   saveIncident = true
 ) =>
-  api.post("/incident/analyze", {
+  api.post("/api/incident/analyze", {
     errorLog: rawErrorLog,
     useMemory,
     saveIncident,
@@ -46,7 +45,7 @@ export const resolveIncident = (
   engineerFeedback,
   rootCause
 ) =>
-  api.post("/incident/resolve", {
+  api.post("/api/incident/resolve", {
     incidentId,
     engineerFeedback,
     rootCause,
@@ -54,20 +53,20 @@ export const resolveIncident = (
 
 // Get all incidents
 export const getIncidents = () =>
-  api.get("/incident");
+  api.get("/api/incident");
 
 // Get single incident
 export const getIncident = (id) =>
-  api.get(`/incident/${encodeURIComponent(id)}`);
+  api.get(`/api/incident/${encodeURIComponent(id)}`);
 
 // Get Hindsight memories
 export const getMemories = () =>
-  api.get("/memory");
+  api.get("/api/memory");
 
 // Get dashboard statistics
 export const getStats = () =>
-  api.get("/stats");
+  api.get("/api/stats");
 
 // Backend health check
 export const getHealth = () =>
-  api.get("/health");
+  api.get("/api/health");
